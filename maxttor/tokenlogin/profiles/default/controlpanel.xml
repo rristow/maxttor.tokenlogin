@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<object
+    name="portal_controlpanel"
+    xmlns:i18n="http://xml.zope.org/namespaces/i18n"
+    i18n:domain="maxttor.tokenlogin"
+    purge="False">
+
+    <configlet
+        title="Maxttor token login"
+        action_id="maxttor_tokenlogin"
+        appId="maxttor.tokenlogin"
+        category="Products"
+        condition_expr=""
+        url_expr="string:${portal_url}/@@tokenlogin-settings"
+        visible="True"
+        icon_expr="string:${portal_url}/++resource++maxttor_tokenlogin_images/tokenlogin-icon.png"
+        i18n:attributes="title">
+        <permission>Manage portal</permission>
+    </configlet>
+
+</object>
+

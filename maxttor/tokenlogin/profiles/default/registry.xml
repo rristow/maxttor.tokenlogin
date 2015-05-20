@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<registry>
+    <records interface="maxttor.tokenlogin.interfaces.ITokenLoginSettings">
+        <value key="enabled"></value>
+        <value key="token_duration">0</value>
+    </records>
+</registry>

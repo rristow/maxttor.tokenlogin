@@ -1,0 +1,2 @@
+recursive-include maxttor *
+global-exclude *pyc
