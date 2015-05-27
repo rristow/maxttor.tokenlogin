@@ -1,0 +1,44 @@
+<configure
+    xmlns="http://namespaces.zope.org/zope"
+    xmlns:browser="http://namespaces.zope.org/browser"
+    xmlns:plone="http://namespaces.plone.org/plone"
+    i18n_domain="maxttor.tokenlogin">
+
+    <!-- Set overrides folder for Just-a-Bunch-Of-Templates product -->
+    <include package="z3c.jbot" file="meta.zcml" />
+
+    <!-- Publish static files -->
+    <browser:resourceDirectory
+        name="maxttor.tokenlogin"
+        directory="static"
+        />
+
+    <interface
+        interface=".interfaces.IThemeSpecific"
+        type="zope.publisher.interfaces.browser.IBrowserSkinType"
+        name="tokenlogin"
+        />
+
+    <browser:page
+        name="tokenlogin-settings"
+        for="Products.CMFPlone.interfaces.IPloneSiteRoot"
+        class=".controlpanel.TokenLoginSettingsEditFormControlPanel"
+        permission = 'cmf.ManagePortal'
+        />
+
+    <browser:page
+        name="manage-token"
+        for="Products.CMFPlone.interfaces.IPloneSiteRoot"
+        class=".views.ManageTokenView"
+        permission="cmf.SetOwnProperties"
+        />
+
+    <browser:page
+        name="tokenlogin"
+        for="Products.CMFPlone.interfaces.IPloneSiteRoot"
+        class=".views.TokenLoginView"
+        permission="zope.Public"
+        />
+
+
+</configure>

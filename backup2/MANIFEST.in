@@ -1,3 +1,0 @@
-graft src/maxttor
-graft docs/
-include *.cfg *.rst *.in

@@ -1,0 +1,67 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
+      xmlns:tal="http://xml.zope.org/namespaces/tal"
+      xmlns:metal="http://xml.zope.org/namespaces/metal"
+      xmlns:i18n="http://xml.zope.org/namespaces/i18n"
+      lang="en"
+      metal:use-macro="here/main_template/macros/master"
+      i18n:domain="plone">
+
+<metal:block fill-slot="top_slot"
+             tal:define="dummy python:request.set('disable_border',1)" />
+
+<body>
+  <div metal:fill-slot="main">
+    <h1 class="documentFirstHeading"
+        i18n:translate="title_online_users">Manage Tokens</h1>
+
+      <dt>
+                   <span class="" 
+                        tal:content="user/user_id|string:NO_ID">user_id</span>
+                   &nbsp;&nbsp;[<a href=""
+                      tal:define="user_id user/user_id"
+                      tal:attributes="href string:$portal_url/@@onlineusers?action=delete_user&user_id=$user_id"
+                      i18n:translate="label_remove">Remove</a>]
+                </dt>
+
+                <dd tal:condition="user/sessions|nothing"
+                    tal:repeat="session user/orderdSessions">
+                    <span tal:condition="session/isActive">
+                        <img title="Online" alt="Online"  tal:attributes="src string:$portal_url/++resource++maxttor.onlineusers.resources/online.png" />
+                        <span 18n:translate="online">Online</span>
+                        <span tal:content="session/ip" title="" tal:attributes="title session/session_id">IP</span>
+                        login time <span tal:content="session/timestamp_login">timestamp_login</span>
+                    </span>
+                    <span tal:condition="not:session/isActive">
+                        <img title="Offline" alt="Offline" tal:attributes="src string:$portal_url/++resource++maxttor.onlineusers.resources/away.png" />
+                        <span 18n:translate="offline">Offline</span>
+                        <span tal:content="session/ip" title="" tal:attributes="title session/session_id">IP</span>
+                        offline time <span tal:content="session/timestamp">timestamp</span>
+                    </span>
+                  &nbsp;&nbsp;[<a href=""
+                     tal:define="session_id session/session_id"
+                     tal:attributes="href string:$portal_url/@@onlineusers?action=delete_session&session_id=$session_id"
+                     i18n:translate="label_remove">Remove</a>]
+                </dd>
+
+                <dd tal:condition="not:user/sessions|nothing">
+                    <div i18n:translate="label_no_sessions">No active sessions</div>
+                </dd>
+<p/>
+            </tal:users>
+          </dl>
+            
+          <div tal:condition="not:users"
+               i18n:translate="no_users_online">There is no users online at the moment.</div>
+        </tal:onlinedata>
+    [<a href="" 
+       tal:attributes="href string:$portal_url/@@onlineusers"
+       i18n:translate="label_refrsh">Refresh</a>]
+    &nbsp;&nbsp;
+    [<a href=""
+       tal:attributes="href string:$portal_url/@@onlineusers?action=delete_inactivesessions"
+       i18n:translate="label_remove_inactive">Remove Inactive</a>]
+
+    </div>
+
+</body>
+</html>

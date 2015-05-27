@@ -1,1 +1,0 @@
-- Rodrigo Ristow, rodrigo@maxttor.com
