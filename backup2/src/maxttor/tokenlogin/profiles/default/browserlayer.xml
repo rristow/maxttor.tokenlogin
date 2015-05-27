@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<layers>
+  <layer
+    name="maxttor.tokenlogin"
+    interface="maxttor.tokenlogin.interfaces.IMaxttorTokenloginLayer"
+  />
+</layers>
