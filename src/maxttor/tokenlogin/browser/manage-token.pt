@@ -12,56 +12,59 @@
 <body>
   <div metal:fill-slot="main">
     <h1 class="documentFirstHeading"
-        i18n:translate="title_online_users">Manage Tokens</h1>
+        i18n:translate="Manage Tokens">Manage Tokens</h1>
+      <form   target=""
+              tal:attributes="target string:$portal_url"
+              tal:define="data_tkt view/get_token_data|nothing" >
 
-      <dt>
-                   <span class="" 
-                        tal:content="user/user_id|string:NO_ID">user_id</span>
-                   &nbsp;&nbsp;[<a href=""
-                      tal:define="user_id user/user_id"
-                      tal:attributes="href string:$portal_url/@@onlineusers?action=delete_user&user_id=$user_id"
-                      i18n:translate="label_remove">Remove</a>]
-                </dt>
+          <span tal:condition="data_tkt"
+                tal:define="tokenstr data_tkt/token_str|string:[empty];
+                            access_link string:$portal_url?auth_token=$tokenstr">
 
-                <dd tal:condition="user/sessions|nothing"
-                    tal:repeat="session user/orderdSessions">
-                    <span tal:condition="session/isActive">
-                        <img title="Online" alt="Online"  tal:attributes="src string:$portal_url/++resource++maxttor.onlineusers.resources/online.png" />
-                        <span 18n:translate="online">Online</span>
-                        <span tal:content="session/ip" title="" tal:attributes="title session/session_id">IP</span>
-                        login time <span tal:content="session/timestamp_login">timestamp_login</span>
-                    </span>
-                    <span tal:condition="not:session/isActive">
-                        <img title="Offline" alt="Offline" tal:attributes="src string:$portal_url/++resource++maxttor.onlineusers.resources/away.png" />
-                        <span 18n:translate="offline">Offline</span>
-                        <span tal:content="session/ip" title="" tal:attributes="title session/session_id">IP</span>
-                        offline time <span tal:content="session/timestamp">timestamp</span>
-                    </span>
-                  &nbsp;&nbsp;[<a href=""
-                     tal:define="session_id session/session_id"
-                     tal:attributes="href string:$portal_url/@@onlineusers?action=delete_session&session_id=$session_id"
-                     i18n:translate="label_remove">Remove</a>]
-                </dd>
+              <div class="row">
+                <span class="documentDescription">user:</span>
+                <span tal:content="data_tkt/userid|string:[not found]"></span>
+              </div>
 
-                <dd tal:condition="not:user/sessions|nothing">
-                    <div i18n:translate="label_no_sessions">No active sessions</div>
-                </dd>
-<p/>
-            </tal:users>
-          </dl>
-            
-          <div tal:condition="not:users"
-               i18n:translate="no_users_online">There is no users online at the moment.</div>
-        </tal:onlinedata>
-    [<a href="" 
-       tal:attributes="href string:$portal_url/@@onlineusers"
-       i18n:translate="label_refrsh">Refresh</a>]
-    &nbsp;&nbsp;
-    [<a href=""
-       tal:attributes="href string:$portal_url/@@onlineusers?action=delete_inactivesessions"
-       i18n:translate="label_remove_inactive">Remove Inactive</a>]
+              <div class="row">
+                <span class="documentDescription">creation date:</span>
+                <span class="text-widget" tal:content="data_tkt/creation|string:[empty]"></span>
+              </div>
 
-    </div>
+              <div class="row">
+                <span class="documentDescription">Token:</span>
+                <span class="text-widget"
+                   tal:content="tokenstr"></span>
+              </div>
 
+              <div class="row">&nbsp;</div>
+
+              <div class="row">
+                <span class="documentDescription">Direct access link:</span>
+                <span class="text-widget">This is an example, how to authenticate with a link. (you will need to logout first to test it)</span>
+                <pre><a href=""
+                        target="_blank"
+                        tal:attributes="href access_link;"
+                        tal:content="access_link">localhost?auth_token=XXX</a></pre>
+              </div>
+
+          </span>
+
+          <span tal:condition="not:data_tkt">
+              <p i18n:translate="">No token information</p>
+          </span>
+
+          <div>
+
+              <div class="row">&nbsp;</div>
+              <input type="hidden" value="" id="user" name="user"
+                      tal:attributes="value view/userid|string:''" />
+
+              <input type="submit" name="action_generate" value="generate token">
+              <input type="submit" name="action_delete" tal:condition="data_tkt" value="delete token">
+
+        </div>
+      </form>
+  </div>
 </body>
 </html>

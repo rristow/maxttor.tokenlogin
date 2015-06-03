@@ -26,6 +26,8 @@ class Token(object):
     token_creation = None
 
     def __init__(self, username, token_key=None, token_creation=None):
+        if not username:
+            raise Exception("Invalid username")
         self.username = username
         if not token_key:
             token_key = self._generateKey()
@@ -121,7 +123,10 @@ class TokenLoginTool(object):
             username = member.id
             auth_token = member.getProperty('auth_token',None)
             auth_token_creation = member.getProperty('auth_token_creation',None)
-            return self._createTokenFromString(auth_token, auth_token_creation)
+            if auth_token:
+                return self._createTokenFromString(auth_token, auth_token_creation)
+            else:
+                return None
         else:
             self.status_message = "member not found"
             return None
@@ -140,7 +145,28 @@ class TokenLoginTool(object):
         #username = self.extractUserName(tokenstr)
         member = membership.getMemberById(token.username)
         if member:
-            member.setProperties(auth_token=token.toStr(), auth_token_creation=datetime.now())
+            member.setMemberProperties({"auth_token":token.toStr(), "auth_token_creation":datetime.now()})
+            return True
+        else:
+            return False
+
+    def deleteToken(self, username=None):
+        """
+        Delete the token for this user.
+        :param username: the username id.
+        :param tokenstr: the token string (use the generateToken function)
+        :return: True if saved or False if there is an error
+        """
+        self.status_message = ""
+        site = getSite()
+        membership = getToolByName(site, 'portal_membership')
+        if username:
+            member = membership.getMemberById(username)
+        else:
+            member = membership.getAuthenticatedMember()
+
+        if member:
+            member.setProperties(auth_token="", auth_token_creation=0)
             return True
         else:
             return False
@@ -160,7 +186,7 @@ class TokenLoginTool(object):
         except (ConflictError, KeyboardInterrupt):
             raise
         except Exception, detail:
-            self.status_message = "Error decoding ticket. %s"%detail
+            self.status_message = "Error decoding token. %s"%detail
             return None
 
     def createTokenFromString(self, tokenstr):
@@ -203,6 +229,7 @@ class TokenLoginTool(object):
         self.status_message = ""
         if token:
             member_token = self.getToken(token.username)
+
             if member_token:
                 if member_token.toStr() == token.toStr():
                     if not member_token.isExpired():

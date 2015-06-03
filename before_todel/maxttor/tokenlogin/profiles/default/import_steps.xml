@@ -1,8 +1,0 @@
-<?xml version="1.0"?>
-<import-steps>
-  <import-step id="tokenlogin_various"
-               version="20150512001"
-               handler="maxttor.tokenlogin.setuphandlers.setupVarious"
-               title="tokenlogin: miscellaneous import steps">
-  </import-step>
-</import-steps>

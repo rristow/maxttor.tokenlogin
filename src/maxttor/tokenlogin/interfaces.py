@@ -9,9 +9,6 @@ from zope.publisher.interfaces.browser import IDefaultBrowserLayer
 
 _ = MessageFactory('maxttor.tokenlogin')
 
-class IMaxttorTokenloginLayer(IDefaultBrowserLayer):
-    """Marker interface that defines a browser layer."""
-
 class ITokenLoginSettings(Interface):
     """ Global tokenplugin settings. This describes records stored in the
     configuration registry and obtainable via plone.registry.

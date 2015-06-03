@@ -4,7 +4,7 @@ from plone.session.plugins.session import SessionPlugin
 from AccessControl import ClassSecurityInfo, AuthEncoding
 from Products.PluggableAuthService.utils import classImplements
 from Globals import InitializeClass
-from Products.PluggableAuthService.interfaces.plugins import IAuthenticationPlugin, IExtractionPlugin, ICredentialsUpdatePlugin
+from Products.PluggableAuthService.interfaces.plugins import IAuthenticationPlugin, IExtractionPlugin, ICredentialsUpdatePlugin, ICredentialsResetPlugin
 from Products.CMFCore.utils import getToolByName
 from maxttor.tokenlogin.TokenLoginTool import tokenLoginTool
 from Products.PageTemplates.PageTemplateFile import PageTemplateFile
@@ -16,9 +16,6 @@ import time
 from email.Utils import formatdate
 
 logger = logging.getLogger('mediQ.AuthenticateCredentials')
-
-#manage_addTokenAuthenticator = PageTemplateFile('addTokenAuthenticator',
-#    globals(), __name__='manage_addTokenAuthenticator')
 
 def cookie_expiration_date(days):
     expires = time.time() + (days * 24 * 60 * 60)
@@ -44,91 +41,76 @@ class AddForm(BrowserView):
 
 class TokenAuthenticator(BasePlugin):
     ''' Plugin for Token Authentication '''
-#    meta_type = 'TokenAuthenticator'
-#    security = ClassSecurityInfo()
-    implements(IAuthenticationPlugin, IExtractionPlugin, ICredentialsUpdatePlugin)
+
+    implements(IAuthenticationPlugin, IExtractionPlugin, ICredentialsUpdatePlugin, ICredentialsResetPlugin)
 
     cookie_name = "__ac_token"
     cookie_lifetime = 10
-    cookie_domain = '/'
+    cookie_domain = ''
     secure = False
+    path = "/"
 
     def __init__(self, id, title=None):
         self.__name__ = self.id = id
         self.title = title
 
-    # ISessionPlugin implementation
-    def _setupSession(self, response, token):
-        self._setCookie(token, response)
-
-    def _setCookie(self, cookie, response):
-        secure = self.secure
-        options = dict(path=self.path)
-        #if self.cookie_domain:
-        #    options['domain'] = self.cookie_domain
-        if self.cookie_lifetime:
-            options['expires'] = cookie_expiration_date(self.cookie_lifetime)
-        print "set cookie ",self.cookie_name, " = ",cookie, " options: ", options
-        response.setCookie(self.cookie_name, cookie, **options)
-
     def extractCredentials(self, request):
+        # Extract token from request
         authtoken=request.get("auth_token", None)
+
         if not authtoken:
+            # Extract token from cookie
             if self.cookie_name in request:
                 authtoken = request.get(self.cookie_name)
-                print "extractCredentials cookie ",self.cookie_name, " = ",authtoken
         else:
-            print "extractCredentials request ",authtoken
+            # save the token into the cookie
+            self._setupSession(self.REQUEST.RESPONSE, authtoken)
 
         if authtoken:
             return {"source":"maxttor.tokenlogin", "token": authtoken}
         else:
             return {}
 
-#TODO Activate
-#    security.declarePrivate( 'authenticateCredentials' )
     def authenticateCredentials(self, credentials):
-        ''' Authenticate credentials against the fake external database '''
         if not credentials.get("source", None)=="maxttor.tokenlogin":
             return None
 
         tokenstr = "[empty]"
         try:
             putils = getToolByName(self, 'plone_utils')
-
-            #print "authenticateCredentials",self.REQUEST.form.keys()
-            #import pdb;pdb.set_trace()
-
-            #if 'auth_token' in self.REQUEST.form.keys():
             tokenstr = credentials.get('token', '')
 
-            #if credentials.get() 'auth_token' in self.REQUEST.form.keys():
-                #tokenstr = self.REQUEST.get('auth_token', '')
             if tokenstr:
-                    token = tokenLoginTool.createTokenFromString(tokenstr)
-                    if token:
-                        if tokenLoginTool.checkToken(token):
-                            #import pdb; pdb.set_trace()
-                            print "TOKEN authenticateCredentials - OK"
-                            self._setupSession(self.REQUEST.RESPONSE, token.toStr())
-                            #site.acl_users.updateCredentials(site.REQUEST, site.REQUEST.RESPONSE, username, password)
-                            # Authentication successful
-                            return token.username, token.username
-
-                        else:
-                            print "TOKEN authenticateCredentials - error",tokenLoginTool.status_message
-                            putils.addPortalMessage(tokenLoginTool.status_message, type=u"error")
+                token = tokenLoginTool.createTokenFromString(tokenstr)
+                if token:
+                    if tokenLoginTool.checkToken(token):
+                        return (token.username, token.username)
                     else:
-                        print "TOKEN authenticateCredentials - error",tokenLoginTool.status_message
                         putils.addPortalMessage(tokenLoginTool.status_message, type=u"error")
-                    #else:
-                    #print "TOKEN authenticateCredentials - error",tokenLoginTool.status_message
-                    #putils.addPortalMessage(tokenLoginTool.status_message, type=u"error")
-            else:
-                #print "token login ignored"
-                pass
+                else:
+                    putils.addPortalMessage(tokenLoginTool.status_message, type=u"error")
         except Exception, detail:
             logger.error('token %s, exception: %s'%(tokenstr,detail))
             raise
-#classImplements(TokenAuthenticator, IAuthenticationPlugin)
+
+    def resetCredentials(self, request, response):
+        response=self.REQUEST["RESPONSE"]
+        if self.cookie_domain:
+            response.expireCookie(
+                self.cookie_name, path=self.path, domain=self.cookie_domain)
+        else:
+            response.expireCookie(self.cookie_name, path=self.path)
+
+    def _setupSession(self, response, token):
+        self._setCookie(token, response)
+
+    def _setCookie(self, cookie, response):
+        secure = self.secure
+        options = dict(path=self.path, secure=self.secure, http_only=True)
+        if self.cookie_domain:
+            options['domain'] = self.cookie_domain
+        if self.cookie_lifetime:
+            options['expires'] = cookie_expiration_date(self.cookie_lifetime)
+        response.setCookie(self.cookie_name, cookie, **options)
+
 InitializeClass(TokenAuthenticator)
