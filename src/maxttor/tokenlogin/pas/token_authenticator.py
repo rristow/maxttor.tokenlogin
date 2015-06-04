@@ -14,8 +14,9 @@ from Products.Five.browser.pagetemplatefile import ViewPageTemplateFile
 import binascii
 import time
 from email.Utils import formatdate
+from maxttor.tokenlogin import _
 
-logger = logging.getLogger('mediQ.AuthenticateCredentials')
+logger = logging.getLogger('maxttor.tokenlogin')
 
 def cookie_expiration_date(days):
     expires = time.time() + (days * 24 * 60 * 60)
@@ -55,16 +56,27 @@ class TokenAuthenticator(BasePlugin):
         self.title = title
 
     def extractCredentials(self, request):
+        putils = getToolByName(self, 'plone_utils')
+        tool_active = tokenLoginTool.isToolActive
+
         # Extract token from request
         authtoken=request.get("auth_token", None)
 
         if not authtoken:
-            # Extract token from cookie
             if self.cookie_name in request:
-                authtoken = request.get(self.cookie_name)
+                if tool_active:
+                    # Extract token from cookie
+                    authtoken = request.get(self.cookie_name)
+                else:
+                    # logout - tool deactivated
+                    self.resetCredentials(self.REQUEST, self.REQUEST.RESPONSE)
         else:
             # save the token into the cookie
-            self._setupSession(self.REQUEST.RESPONSE, authtoken)
+            if tool_active:
+                self._setupSession(self.REQUEST.RESPONSE, authtoken)
+            else:
+                putils.addPortalMessage(_("Token login is deactivated"), type=u"error")
+                return None
 
         if authtoken:
             return {"source":"maxttor.tokenlogin", "token": authtoken}
@@ -72,12 +84,15 @@ class TokenAuthenticator(BasePlugin):
             return {}
 
     def authenticateCredentials(self, credentials):
+        putils = getToolByName(self, 'plone_utils')
         if not credentials.get("source", None)=="maxttor.tokenlogin":
+            return None
+        if not tokenLoginTool.isToolActive:
+            putils.addPortalMessage(_("Token login is deactivated"), type=u"error")
             return None
 
         tokenstr = "[empty]"
         try:
-            putils = getToolByName(self, 'plone_utils')
             tokenstr = credentials.get('token', '')
 
             if tokenstr:

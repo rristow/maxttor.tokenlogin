@@ -101,10 +101,10 @@ class TokenLoginTool(object):
         ru =  getUtility(IRegistry)
         return ru.forInterface(ITokenLoginSettings)
 
-    def isToolActive(self, context):
+    @property
+    def isToolActive(self):
         """ Return if the Product is active  """
-        ret = self._getConfig().enabled
-        return ret
+        return self._getConfig().enabled
 
     def getToken(self, username=None):
         """
