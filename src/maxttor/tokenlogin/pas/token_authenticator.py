@@ -18,6 +18,9 @@ from maxttor.tokenlogin import _
 
 logger = logging.getLogger('maxttor.tokenlogin')
 
+def debuginfo(msg):
+    logger.warning(msg)
+
 def cookie_expiration_date(days):
     expires = time.time() + (days * 24 * 60 * 60)
     return formatdate(expires, usegmt=True)
@@ -58,28 +61,31 @@ class TokenAuthenticator(BasePlugin):
     def extractCredentials(self, request):
         putils = getToolByName(self, 'plone_utils')
         tool_active = tokenLoginTool.isToolActive
+        first_login=False
 
-        # Extract token from request
+        # Extract token from request (login)
         authtoken=request.get("auth_token", None)
+        if authtoken:
+            first_login = True
 
-        if not authtoken:
-            if self.cookie_name in request:
-                if tool_active:
-                    # Extract token from cookie
-                    authtoken = request.get(self.cookie_name)
-                else:
-                    # logout - tool deactivated
-                    self.resetCredentials(self.REQUEST, self.REQUEST.RESPONSE)
-        else:
-            # save the token into the cookie
-            if tool_active:
-                self._setupSession(self.REQUEST.RESPONSE, authtoken)
-            else:
+        if not tool_active:
+            if authtoken:
                 putils.addPortalMessage(_("Token login is deactivated"), type=u"error")
-                return None
+            self.resetCredentials(self.REQUEST, self.REQUEST.RESPONSE)
+            return None
+
+        # Check cookie (session active)
+        if self.cookie_name in request:
+            authtoken_cookie = request.get(self.cookie_name)
+            if authtoken:
+                if authtoken != authtoken_cookie:
+                    # Renew the cookie
+                    first_login = True
+            else:
+                authtoken = authtoken_cookie
 
         if authtoken:
-            return {"source":"maxttor.tokenlogin", "token": authtoken}
+            return {"source":"maxttor.tokenlogin", "token": authtoken, "first_login": first_login}
         else:
             return {}
 
@@ -99,13 +105,18 @@ class TokenAuthenticator(BasePlugin):
                 token = tokenLoginTool.createTokenFromString(tokenstr)
                 if token:
                     if tokenLoginTool.checkToken(token):
+                        if credentials.get("first_login", False):
+                            # make a session
+                            self._setupSession(self.REQUEST.RESPONSE, tokenstr)
+                            debuginfo("Token-login successful. User: '%s', token: '%s'"%(token.username, tokenstr))
                         return (token.username, token.username)
                     else:
+                        debuginfo("Token-login unsuccessful. Token: '%s'. %s"%(tokenstr,tokenLoginTool.status_message))
                         putils.addPortalMessage(tokenLoginTool.status_message, type=u"error")
                 else:
                     putils.addPortalMessage(tokenLoginTool.status_message, type=u"error")
         except Exception, detail:
-            logger.error('token %s, exception: %s'%(tokenstr,detail))
+            logger.error("Authenticate credentials error. Token: '%s', exception: %s"%(tokenstr,detail))
             raise
 
     def resetCredentials(self, request, response):
@@ -117,6 +128,7 @@ class TokenAuthenticator(BasePlugin):
             response.expireCookie(self.cookie_name, path=self.path)
 
     def _setupSession(self, response, token):
+        # save the token into the cookie
         self._setCookie(token, response)
 
     def _setCookie(self, cookie, response):
