@@ -41,7 +41,7 @@
 
               <div class="row">
                 <span class="documentDescription">Direct access link:</span>
-                <span class="text-widget">This is an example, how to authenticate with a link. (you will need to logout first to test it)</span>
+                <span class="text-widget">This is an example, how to authenticate with a link. (you will need to logout first if you wanna test it)</span>
                 <pre><a href=""
                         target="_blank"
                         tal:attributes="href access_link;"
