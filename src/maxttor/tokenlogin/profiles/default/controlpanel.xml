@@ -13,7 +13,7 @@
         condition_expr=""
         url_expr="string:${portal_url}/@@tokenlogin-settings"
         visible="True"
-        icon_expr="string:${portal_url}/++resource++maxttor_tokenlogin_images/tokenlogin-icon.png"
+        icon_expr="string:${portal_url}/++resource++maxttor.tokenlogin/tokenlogin-icon.png"
         i18n:attributes="title">
         <permission>Manage portal</permission>
     </configlet>
