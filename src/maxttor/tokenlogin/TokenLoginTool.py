@@ -159,7 +159,7 @@ class TokenLoginTool(object):
             self.status_message = "member not found"
             return None
 
-    def saveToken(self, token, allowediprange=None):
+    def saveToken(self, token, allowediprange):
         """
         Save the token for this user.
         :param username: the username id.
@@ -176,6 +176,8 @@ class TokenLoginTool(object):
             data = {"auth_token":token.toStr(), "auth_token_creation":datetime.now()}
             if allowediprange:
                 data['auth_token_allowediprange'] = allowediprange
+            else:
+                data['auth_token_allowediprange'] = ''
 
             member.setMemberProperties(data)
             return True
@@ -198,7 +200,7 @@ class TokenLoginTool(object):
             member = membership.getAuthenticatedMember()
 
         if member:
-            member.setProperties(auth_token="", auth_token_creation=0)
+            member.setProperties(auth_token="", auth_token_creation=0, auth_token_allowediprange='')
             return True
         else:
             return False

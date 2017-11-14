@@ -63,30 +63,30 @@ class ManageTokenView(BrowserView):
             raise Unauthorized("you need administration rights")
 
         self.token = tokenLoginTool.getToken(self.userid)
-
+       
         if self.request.get('action_generate', None):
-            self.allowediprange = self.request.get('allowediprange', None)
-            if self.allowediprange and self.check_ip_range(self.allowediprange):
-                if self.token:
-                    self.token.rewriteTokenKey()
-                else:
-                    self.allowediprange = self.normalize_iprange(self.allowediprange)
-                    self.token = tokenLoginTool.createToken(self.userid, self.allowediprange)
+            if self.token:
+                self.token.rewriteTokenKey()
             else:
-                putils.addPortalMessage(_(u"It was not possible to save the token. The IP Range is not valid.") +
-                                        str(tokenLoginTool.status_message), type=u"error")
+                self.token = tokenLoginTool.createToken(self.userid, self.request.get('allowediprange', ''))
+            tokenLoginTool.saveToken(self.token, allowediprange=self.request.get('allowediprange', ''))
+            putils.addPortalMessage(_(u"The token was generated."), type=u"warning")
         elif self.request.get('action_save', None):
+            save = True
             self.allowediprange = self.request.get('allowediprange', None)
-            if self.allowediprange and self.check_ip_range(self.allowediprange):
-                self.allowediprange = self.normalize_iprange(self.allowediprange)
+            if self.allowediprange:
+                if self.check_ip_range(self.allowediprange):
+                    self.allowediprange = self.normalize_iprange(self.allowediprange)
+                else:
+                    save = False
+                    putils.addPortalMessage(_(u"It was not possible to save the token. The IP Range is not valid.") +
+                                            str(tokenLoginTool.status_message), type=u"error")
+            if save:
                 if tokenLoginTool.saveToken(self.token, allowediprange=self.allowediprange):
                     self.token = tokenLoginTool.getToken(self.userid)
                     putils.addPortalMessage(_(u"The token was saved."), type=u"warning")
                 else:
                     putils.addPortalMessage(_(u"It was not possible to save the token.")+str(tokenLoginTool.status_message), type=u"error")
-            else:
-                putils.addPortalMessage(_(u"It was not possible to save the token. The IP Range is not valid.") +
-                                        str(tokenLoginTool.status_message), type=u"error")
         elif self.request.get('action_delete', None):
             if tokenLoginTool.deleteToken(self.userid):
                 self.token = None
