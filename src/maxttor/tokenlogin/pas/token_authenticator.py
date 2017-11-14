@@ -1,8 +1,5 @@
 import logging
 from Products.PluggableAuthService.plugins.BasePlugin import BasePlugin
-from plone.session.plugins.session import SessionPlugin
-from AccessControl import ClassSecurityInfo, AuthEncoding
-from Products.PluggableAuthService.utils import classImplements
 from Globals import InitializeClass
 from Products.PluggableAuthService.interfaces.plugins import IAuthenticationPlugin, IExtractionPlugin, ICredentialsUpdatePlugin, ICredentialsResetPlugin
 from Products.CMFCore.utils import getToolByName
@@ -11,15 +8,10 @@ from Products.PageTemplates.PageTemplateFile import PageTemplateFile
 from zope.publisher.browser import BrowserView
 from zope.interface import implements
 from Products.Five.browser.pagetemplatefile import ViewPageTemplateFile
-import binascii
 import time
 from email.Utils import formatdate
-from maxttor.tokenlogin import _
 
 logger = logging.getLogger('maxttor.tokenlogin')
-
-def debuginfo(msg):
-    logger.warning(msg)
 
 def cookie_expiration_date(days):
     expires = time.time() + (days * 24 * 60 * 60)
@@ -70,7 +62,8 @@ class TokenAuthenticator(BasePlugin):
 
         if not tool_active:
             if authtoken:
-                putils.addPortalMessage(_("Token login is deactivated"), type=u"error")
+                # portal_message will have not effect here, because Plone will redirect to login.
+                logging.warning("Token login is deactivated")
             self.resetCredentials(self.REQUEST, self.REQUEST.RESPONSE)
             return None
 
@@ -85,35 +78,31 @@ class TokenAuthenticator(BasePlugin):
                 authtoken = authtoken_cookie
 
         if authtoken:
-            return {"source":"maxttor.tokenlogin", "token": authtoken, "first_login": first_login}
+            ret = {"source":"maxttor.tokenlogin", "token": authtoken, "first_login": first_login}
+            return ret
         else:
             return {}
 
     def authenticateCredentials(self, credentials):
         putils = getToolByName(self, 'plone_utils')
-        if not credentials.get("source", None)=="maxttor.tokenlogin":
+        if not credentials.get("source", None) == "maxttor.tokenlogin":
             return None
         if not tokenLoginTool.isToolActive:
-            putils.addPortalMessage(_("Token login is deactivated"), type=u"error")
+            logger.warning("Token login is deactivated")
             return None
 
-        tokenstr = "[empty]"
         try:
             tokenstr = credentials.get('token', '')
-
             if tokenstr:
                 token = tokenLoginTool.createTokenFromString(tokenstr)
-                if token:
-                    if tokenLoginTool.checkToken(token):
-                        if credentials.get("first_login", False):
-                            # make a session
-                            self._setupSession(self.REQUEST.RESPONSE, tokenstr)
-                            debuginfo("Token-login successful. User: '%s', token: '%s'"%(token.username, tokenstr))
+                if tokenLoginTool.checkToken(self.REQUEST, token):
+                    if credentials.get("first_login", False):
+                        # make a session
+                        self._setupSession(self.REQUEST.RESPONSE, tokenstr)
+                        logger.warning("Token-login successful. User: '%s', token: '%s'"%(token.username, tokenstr))
                         return (token.username, token.username)
-                    else:
-                        debuginfo("Token-login unsuccessful. Token: '%s'. %s"%(tokenstr,tokenLoginTool.status_message))
-                        putils.addPortalMessage(tokenLoginTool.status_message, type=u"error")
                 else:
+                    logger.warning("Token-login unsuccessful. Token: '%s'. %s"%(tokenstr, tokenLoginTool.status_message))
                     putils.addPortalMessage(tokenLoginTool.status_message, type=u"error")
         except Exception, detail:
             logger.error("Authenticate credentials error. Token: '%s', exception: %s"%(tokenstr,detail))

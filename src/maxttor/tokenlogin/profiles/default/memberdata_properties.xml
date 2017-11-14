@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
-<object name="portal_memberdata" meta_type="Plone Memberdata Tool">
+<object name="portal_memberdata" meta_type="Plone Memberdata Tool" purge="False">
  <property name="auth_token" type="string"></property>
  <property name="auth_token_creation" type="date">2000/01/01</property>
+ <property name="auth_token_allowediprange" type="text"></property>
 </object>

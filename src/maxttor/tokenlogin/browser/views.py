@@ -19,6 +19,7 @@ from zope.security import checkPermission
 from AccessControl import getSecurityManager
 from AccessControl import Unauthorized
 from Products.CMFCore import permissions
+from maxttor.tokenlogin.TokenLoginTool import iprange_str_to_list
 
 try:
     from zope.component.hooks import getSite
@@ -30,6 +31,16 @@ from maxttor.tokenlogin import _
 class ManageTokenView(BrowserView):
     """ Manage the tokens  """
     template = ViewPageTemplateFile('manage-token.pt')
+
+    def normalize_iprange(self, ipstr):
+        return "; ".join(iprange_str_to_list(ipstr))
+
+    def check_ip_range(self, ipstr):
+        try:
+            iprange_str_to_list(ipstr)
+            return True
+        except ValueError:
+            return False
 
     def __call__(self):
         context = aq_inner(self.context)
@@ -44,6 +55,7 @@ class ManageTokenView(BrowserView):
         if member:
             userid_actual = member.id
         self.userid = self.request.get('user', None)
+
         if not self.userid:
             self.userid = userid_actual
 
@@ -53,16 +65,28 @@ class ManageTokenView(BrowserView):
         self.token = tokenLoginTool.getToken(self.userid)
 
         if self.request.get('action_generate', None):
-            if self.token:
-                self.token.rewriteTokenKey()
+            self.allowediprange = self.request.get('allowediprange', None)
+            if self.allowediprange and self.check_ip_range(self.allowediprange):
+                if self.token:
+                    self.token.rewriteTokenKey()
+                else:
+                    self.allowediprange = self.normalize_iprange(self.allowediprange)
+                    self.token = tokenLoginTool.createToken(self.userid, self.allowediprange)
             else:
-                self.token = tokenLoginTool.createToken(self.userid)
-            if tokenLoginTool.saveToken(self.token):
-                putils.addPortalMessage(_(u"The token was saved."), type=u"warning")
+                putils.addPortalMessage(_(u"It was not possible to save the token. The IP Range is not valid.") +
+                                        str(tokenLoginTool.status_message), type=u"error")
+        elif self.request.get('action_save', None):
+            self.allowediprange = self.request.get('allowediprange', None)
+            if self.allowediprange and self.check_ip_range(self.allowediprange):
+                self.allowediprange = self.normalize_iprange(self.allowediprange)
+                if tokenLoginTool.saveToken(self.token, allowediprange=self.allowediprange):
+                    putils.addPortalMessage(_(u"The token was saved."), type=u"warning")
+                else:
+                    putils.addPortalMessage(_(u"It was not possible to save the token.")+str(tokenLoginTool.status_message), type=u"error")
             else:
-                putils.addPortalMessage(_(u"It was not possible to save the token.")+str(tokenLoginTool.status_message), type=u"error")
-
-        if self.request.get('action_delete', None):
+                putils.addPortalMessage(_(u"It was not possible to save the token. The IP Range is not valid.") +
+                                        str(tokenLoginTool.status_message), type=u"error")
+        elif self.request.get('action_delete', None):
             if tokenLoginTool.deleteToken(self.userid):
                 self.token = None
                 putils.addPortalMessage(_(u"The token was deleted."), type=u"warning")
@@ -78,8 +102,11 @@ class ManageTokenView(BrowserView):
     @property
     def get_token_data(self):
         if self.token:
-            return {'userid': self.userid,
+            ret = {'userid': self.userid,
                     'creation': self.token.token_creation.strftime("%d.%m.%Y %H:%M"),
-                    'token_str': self.token.toStr()}
+                    'token_str': self.token.toStr(),
+                    'allowediprange': str(self.token.allowediprange) and "; ".join(self.token.allowediprange) or ""
+                   }
+            return ret
         else:
             return None

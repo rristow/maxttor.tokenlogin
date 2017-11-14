@@ -27,6 +27,13 @@
         permission="cmf.SetOwnProperties"
         />
 
+    <browser:page
+        name="login-token"
+        for="Products.CMFPlone.interfaces.IPloneSiteRoot"
+        class=".views.LoginTokenView"
+        permission="cmf.SetOwnProperties"
+        />
+
 <!--
     <browser:page
         name="tokenlogin"

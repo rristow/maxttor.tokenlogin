@@ -44,6 +44,7 @@ setup(
         'plone.api',
         'setuptools',
         'z3c.jbot',
+        'Products.PASIPAuth'
     ],
     extras_require={
         'test': [

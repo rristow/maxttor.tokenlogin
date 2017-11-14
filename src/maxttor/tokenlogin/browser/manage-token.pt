@@ -18,8 +18,9 @@
               tal:define="data_tkt view/get_token_data|nothing" >
 
           <span tal:condition="data_tkt"
-                tal:define="tokenstr data_tkt/token_str|string:[empty];
-                            access_link string:$portal_url?auth_token=$tokenstr">
+                tal:define="tokenstr  data_tkt/token_str|string:[empty];
+                            allowediprange  data_tkt/allowediprange|string:;
+                            access_link  string:$portal_url?auth_token=$tokenstr">
 
               <div class="row">
                 <span class="documentDescription">user:</span>
@@ -35,6 +36,19 @@
                 <span class="documentDescription">Token:</span>
                 <span class="text-widget"
                    tal:content="tokenstr"></span>
+              </div>
+
+              <div class="row">
+                <span class="documentDescription">IP Range (safeguard):</span>
+                <input type="text"
+                       id="allowediprange"
+                       name="allowediprange"
+                       size="45"
+                       rows="5"
+                       value="member.url html_quote"
+                       tal:attributes="value allowediprange"
+                       />
+<!--  disabled python:member.canWriteProperty('url') and default or 'disabled' -->
               </div>
 
               <div class="row">&nbsp;</div>
@@ -60,7 +74,8 @@
               <input type="hidden" value="" id="user" name="user"
                       tal:attributes="value view/userid|string:''" />
 
-              <input type="submit" name="action_generate" value="generate token">
+              <input type="submit" name="action_generate" tal:condition="not:data_tkt" value="generate token">
+              <input type="submit" name="action_save" tal:condition="data_tkt" value="Save">
               <input type="submit" name="action_delete" tal:condition="data_tkt" value="delete token">
 
         </div>
