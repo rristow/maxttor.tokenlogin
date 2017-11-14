@@ -297,7 +297,10 @@ class TokenLoginTool(object):
                             if self.check_ip_range(request, user_ip):
                                 return True
                             else:
-                                self.status_message = "The IP '%s' is not allowed." % user_ip
+                                self.status_message = ("Your network (IP: {IP}, user: {USER}) is not allowed "
+                                                       "in the token authenticator.".format(
+                                    IP=request.getClientAddr(),
+                                    USER=token.username))
                                 return False
                         else:
                             return True

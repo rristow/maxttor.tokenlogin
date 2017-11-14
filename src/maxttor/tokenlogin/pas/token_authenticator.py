@@ -53,60 +53,62 @@ class TokenAuthenticator(BasePlugin):
     def extractCredentials(self, request):
         putils = getToolByName(self, 'plone_utils')
         tool_active = tokenLoginTool.isToolActive
-        first_login=False
 
         # Extract token from request (login)
-        authtoken=request.get("auth_token", None)
-        if authtoken:
-            first_login = True
 
-        if not tool_active:
+        authtoken = request.get("auth_token", None)
+        if authtoken:
+            token_sent = True
+        else:
+            token_sent = False
+
+        if tool_active:
+            # Check cookie (session active)
+            if not token_sent:
+                # try to extract token from cookie
+                if self.cookie_name in request:
+                    authtoken = request.get(self.cookie_name)
+
             if authtoken:
+                ret = {"source": "maxttor.tokenlogin", "token": authtoken, "token_sent": token_sent}
+                return ret
+            else:
+                return {}
+        else:
+            if token_sent:
                 # portal_message will have not effect here, because Plone will redirect to login.
                 logging.warning("Token login is deactivated")
+                putils.addPortalMessage("Token login is deactivated", type=u"error")
             self.resetCredentials(self.REQUEST, self.REQUEST.RESPONSE)
-            return None
-
-        # Check cookie (session active)
-        if self.cookie_name in request:
-            authtoken_cookie = request.get(self.cookie_name)
-            if authtoken:
-                if authtoken != authtoken_cookie:
-                    # Renew the cookie
-                    first_login = True
-            else:
-                authtoken = authtoken_cookie
-
-        if authtoken:
-            ret = {"source":"maxttor.tokenlogin", "token": authtoken, "first_login": first_login}
-            return ret
-        else:
             return {}
 
     def authenticateCredentials(self, credentials):
         putils = getToolByName(self, 'plone_utils')
         if not credentials.get("source", None) == "maxttor.tokenlogin":
             return None
-        if not tokenLoginTool.isToolActive:
+        if tokenLoginTool.isToolActive:
+            try:
+                tokenstr = credentials.get('token', '')
+                if tokenstr:
+                    token = tokenLoginTool.createTokenFromString(tokenstr)
+                    if tokenLoginTool.checkToken(self.REQUEST, token):
+                        if credentials.get("token_sent", False):
+                            # make a session
+                            self._setupSession(self.REQUEST.RESPONSE, tokenstr)
+                            logger.warning("Token-login successful. User: '%s', token: '%s'"%(token.username, tokenstr))
+                            ret = (token.username, token.username)
+                            return ret
+                    else:
+                        self.resetCredentials(self.REQUEST, self.REQUEST.RESPONSE)
+                        logger.warning("Token-login unsuccessful. Token: '%s'. %s"%(tokenstr, tokenLoginTool.status_message))
+                        putils.addPortalMessage(tokenLoginTool.status_message, type=u"error")
+            except Exception, detail:
+                logger.error("Authenticate credentials error. Token: '%s', exception: %s"%(tokenstr,detail))
+                raise
+        else:
             logger.warning("Token login is deactivated")
+            putils.addPortalMessage("Token login is deactivated", type=u"error")
             return None
-
-        try:
-            tokenstr = credentials.get('token', '')
-            if tokenstr:
-                token = tokenLoginTool.createTokenFromString(tokenstr)
-                if tokenLoginTool.checkToken(self.REQUEST, token):
-                    if credentials.get("first_login", False):
-                        # make a session
-                        self._setupSession(self.REQUEST.RESPONSE, tokenstr)
-                        logger.warning("Token-login successful. User: '%s', token: '%s'"%(token.username, tokenstr))
-                        return (token.username, token.username)
-                else:
-                    logger.warning("Token-login unsuccessful. Token: '%s'. %s"%(tokenstr, tokenLoginTool.status_message))
-                    putils.addPortalMessage(tokenLoginTool.status_message, type=u"error")
-        except Exception, detail:
-            logger.error("Authenticate credentials error. Token: '%s', exception: %s"%(tokenstr,detail))
-            raise
 
     def resetCredentials(self, request, response):
         response=self.REQUEST["RESPONSE"]

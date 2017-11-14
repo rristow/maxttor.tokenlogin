@@ -80,6 +80,7 @@ class ManageTokenView(BrowserView):
             if self.allowediprange and self.check_ip_range(self.allowediprange):
                 self.allowediprange = self.normalize_iprange(self.allowediprange)
                 if tokenLoginTool.saveToken(self.token, allowediprange=self.allowediprange):
+                    self.token = tokenLoginTool.getToken(self.userid)
                     putils.addPortalMessage(_(u"The token was saved."), type=u"warning")
                 else:
                     putils.addPortalMessage(_(u"It was not possible to save the token.")+str(tokenLoginTool.status_message), type=u"error")
