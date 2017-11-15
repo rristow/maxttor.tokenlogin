@@ -68,7 +68,6 @@ class TokenAuthenticator(BasePlugin):
                 # try to extract token from cookie
                 if self.cookie_name in request:
                     authtoken = request.get(self.cookie_name)
-
             if authtoken:
                 ret = {"source": "maxttor.tokenlogin", "token": authtoken, "token_sent": token_sent}
                 return ret
@@ -96,8 +95,8 @@ class TokenAuthenticator(BasePlugin):
                             # make a session
                             self._setupSession(self.REQUEST.RESPONSE, tokenstr)
                             logger.warning("Token-login successful. User: '%s', token: '%s'"%(token.username, tokenstr))
-                            ret = (token.username, token.username)
-                            return ret
+                        ret = (token.username, token.username)
+                        return ret
                     else:
                         self.resetCredentials(self.REQUEST, self.REQUEST.RESPONSE)
                         logger.warning("Token-login unsuccessful. Token: '%s'. %s"%(tokenstr, tokenLoginTool.status_message))
