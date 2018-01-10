@@ -120,6 +120,7 @@ class TokenLoginTool(object):
 
     def __init__(self):
         self.staus_message = ""
+        self.ip_info = ""
 
     def _getConfig(self):
         """
@@ -273,14 +274,14 @@ class TokenLoginTool(object):
                 forwarded_ips.append(ip_address)
 
         # Verify all ip ranges
+        client_addr = request.getClientAddr()
         for ip_range in ip_range_list:
-            clientAddr = request.getClientAddr()
-            if in_cidr(clientAddr, ip_range):
-                return True, clientAddr
+            if in_cidr(client_addr, ip_range):
+                return True, client_addr
             for clientAddr_fwd in forwarded_ips:
                 if in_cidr(clientAddr_fwd, ip_range):
                     return True, clientAddr_fwd
-        return False, "%s (HTTP_X_FORWARDED_FOR: '%s')" % (clientAddr, forwarded_ips)
+        return False, "%s (HTTP_X_FORWARDED_FOR: %s)" % (client_addr, forwarded_ips)
 
     def checkToken(self, request, token):
         """
@@ -289,6 +290,7 @@ class TokenLoginTool(object):
         :return: (status_message will be updated)
         """
         self.status_message = ""
+        self.ip_info = ""
         if token:
             member_token = self.getToken(token.username)
 
@@ -299,14 +301,11 @@ class TokenLoginTool(object):
                             user_ip = member_token.allowediprange
                             allowed, ip_info = self.check_ip_range(request, user_ip)
                             if allowed:
-                                self.status_message = ("IP: {IP} is allowed. (User: {USER})".format(
-                                    IP=ip_info,
-                                    USER=token.username))
+                                self.ip_info = ip_info
                                 return True
                             else:
-                                self.status_message = ("IP: {IP} is not allowed. (User: {USER}) ".format(
-                                    IP=ip_info,
-                                    USER=token.username))
+                                self.ip_info = ip_info
+                                self.status_message = "This credential (token) is not allowed for your current network."
                                 return False
                         else:
                             return True

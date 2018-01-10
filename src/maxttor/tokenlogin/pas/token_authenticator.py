@@ -94,20 +94,31 @@ class TokenAuthenticator(BasePlugin):
                         if credentials.get("token_sent", False):
                             # make a session
                             self._setupSession(self.REQUEST.RESPONSE, tokenstr)
-                            logger.warning("Token-login successful. User: '%s', token: '%s'"%(token.username, tokenstr))
-                        ret = (token.username, token.username)
-                        return ret
+                            logger.warning("Token-login successful. Token: '{TOKEN}', User: '{USER}'. "
+                                           "{STATUS_MESSAGE} {IP_INFO}".format(
+                                TOKEN=tokenstr,
+                                USER=token.username,
+                                IP_INFO=tokenLoginTool.ip_info,
+                                STATUS_MESSAGE=tokenLoginTool.status_message))
+                        return (token.username, token.username)
                     else:
                         self.resetCredentials(self.REQUEST, self.REQUEST.RESPONSE)
-                        logger.warning("Token-login unsuccessful. Token: '%s'. %s"%(tokenstr, tokenLoginTool.status_message))
-                        putils.addPortalMessage("This credential (token) is not allowed in your current network.",
-                                                type=u"error")
+                        logger.warning("Token-login unsuccessful. Token: '{TOKEN}'. {STATUS_MESSAGE} {IP_INFO}".format(
+                            TOKEN=tokenstr,
+                            IP_INFO=tokenLoginTool.ip_info,
+                            STATUS_MESSAGE=tokenLoginTool.status_message))
+                        putils.addPortalMessage("Login unsuccessful. {STATUS_MESSAGE} ".format(
+                            STATUS_MESSAGE=tokenLoginTool.status_message),
+                            type=u"error")
             except Exception, detail:
-                logger.error("Authenticate credentials error. Token: '%s', exception: %s"%(tokenstr,detail))
+                putils.addPortalMessage("Authenticate credentials error.", type=u"error")
+                logger.error("Authenticate credentials error. Token: '{TOKEN}', exception: {DETAIL}".format(
+                    TOKEN=tokenstr,
+                    DETAIL=detail))
                 raise
         else:
             logger.warning("Token login is deactivated")
-            putils.addPortalMessage("Token login is deactivated", type=u"error")
+            putils.addPortalMessage("Token-login is deactivated", type=u"error")
             return None
 
     def resetCredentials(self, request, response):
