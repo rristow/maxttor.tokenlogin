@@ -276,10 +276,11 @@ class TokenLoginTool(object):
         for ip_range in ip_range_list:
             clientAddr = request.getClientAddr()
             if in_cidr(clientAddr, ip_range):
-                return clientAddr
+                return True, clientAddr
             for clientAddr_fwd in forwarded_ips:
                 if in_cidr(clientAddr_fwd, ip_range):
-                    return clientAddr_fwd
+                    return True, clientAddr_fwd
+        return False, "%s (HTTP_X_FORWARDED_FOR: '%s')" % (clientAddr, forwarded_ips)
 
     def checkToken(self, request, token):
         """
@@ -296,12 +297,15 @@ class TokenLoginTool(object):
                     if not member_token.isExpired():
                         if member_token.allowediprange:
                             user_ip = member_token.allowediprange
-                            if self.check_ip_range(request, user_ip):
+                            allowed, ip_info = self.check_ip_range(request, user_ip)
+                            if allowed:
+                                self.status_message = ("IP: {IP} is allowed. (User: {USER})".format(
+                                    IP=ip_info,
+                                    USER=token.username))
                                 return True
                             else:
-                                self.status_message = ("Your network (IP: {IP}, user: {USER}) is not allowed "
-                                                       "in the token authenticator.".format(
-                                    IP=request.getClientAddr(),
+                                self.status_message = ("IP: {IP} is not allowed. (User: {USER}) ".format(
+                                    IP=ip_info,
                                     USER=token.username))
                                 return False
                         else:

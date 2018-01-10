@@ -100,7 +100,8 @@ class TokenAuthenticator(BasePlugin):
                     else:
                         self.resetCredentials(self.REQUEST, self.REQUEST.RESPONSE)
                         logger.warning("Token-login unsuccessful. Token: '%s'. %s"%(tokenstr, tokenLoginTool.status_message))
-                        putils.addPortalMessage(tokenLoginTool.status_message, type=u"error")
+                        putils.addPortalMessage("This credential (token) is not allowed in your current network.",
+                                                type=u"error")
             except Exception, detail:
                 logger.error("Authenticate credentials error. Token: '%s', exception: %s"%(tokenstr,detail))
                 raise
